@@ -162,16 +162,16 @@ class zLocket:
             sys.stdout.write(f"\r{xColor.GREEN}{message} ✓     \n")
             sys.stdout.flush()
     def _sequence_(self, message, duration=1.5, char_set="0123456789ABCDEF"):
-        end_time=time.time() + duration
+        end_time = time.time() + duration
         while time.time() < end_time:
-            random_hex=''.join(random.choices(char_set, k=50))
+            random_hex = ''.join(random.choices(char_set, k=50))
             with PRINT_LOCK:
-                sys.stdout.write(
-                    f"\r{xColor.GREEN}[{xColor.WHITE}*{xColor.GREEN}] {xColor.CYAN}{message}: {xColor.GREEN}{random_hex}\n")
+                sys.stdout.write(f"\r{xColor.GREEN}[{xColor.WHITE}*{xColor.GREEN}] {xColor.CYAN}{message}: {xColor.GREEN}{random_hex}")
                 sys.stdout.flush()
             time.sleep(0.05)
         with PRINT_LOCK:
-            print()
+            sys.stdout.write("\n")
+            sys.stdout.flush()
     def _randchar_(self, duration=2):
         special_chars="#$%^&*()[]{}!@<>?/\\|~`-=+_"
         hex_chars="0123456789ABCDEF"
@@ -739,29 +739,31 @@ def load_proxies():
     proxies=list(set(proxies))
     if not proxies:
         config._print(
-            f"{xColor.RED}[!] {xColor.YELLOW}Critical failure: No proxies available for operation")
+            f"{xColor.RED}[!] Warning: No proxies available for operation")
         return []
     config.total_proxies=len(proxies)
     config._print(
-        f"{xColor.GREEN}[+] {xColor.CYAN}Proxy harvesting complete. {xColor.WHITE}{len(proxies)} {xColor.CYAN}unique proxies loaded")
+        f"{xColor.GREEN}[+] {xColor.CYAN}Proxy harvesting complete{xColor.WHITE} {len(proxies)} {xColor.CYAN}unique proxies loaded")
     return proxies
 def init_proxy():
-    proxies=load_proxies()
+    proxies = load_proxies()
     if not proxies:
-        config._print(
-            f"{xColor.RED}[!] {xColor.YELLOW}Operation aborted: No proxies available")
+        config._print(f"{xColor.RED}[!] {xColor.YELLOW}Note: Please add proxies to continue running the tool.")
         config._loader_("Shutting down system", 1)
         sys.exit(1)
-    config._print(
-        f"{xColor.MAGENTA}[*] {xColor.CYAN}Randomizing proxy sequence for optimal distribution")
+    if len(proxies) < 200:
+        config._print(f"{xColor.RED}[!] {xColor.YELLOW}Warning: Insufficient proxies ({len(proxies)} proxies found, minimum 200 required)")
+        config._print(f"{xColor.RED}[!] Please add more proxies to proxy.txt or check proxy sources")
+        config._loader_("Shutting down system", 1)
+        sys.exit(1)
+    config._print(f"{xColor.MAGENTA}[*] {xColor.CYAN}Randomizing proxy sequence for optimal distribution")
     random.shuffle(proxies)
     config._loader_("Optimizing proxy rotation algorithm", 1)
-    proxy_queue=Queue()
+    proxy_queue = Queue()
     for proxy in proxies:
         proxy_queue.put(proxy)
-    num_threads=len(proxies)
-    config._print(
-        f"{xColor.GREEN}[+] {xColor.CYAN}Proxy system initialized with {xColor.WHITE}{num_threads} {xColor.CYAN}endpoints")
+    num_threads = len(proxies)
+    config._print(f"{xColor.GREEN}[+] {xColor.CYAN}Proxy system initialized with {xColor.WHITE}{num_threads} {xColor.CYAN}endpoints")
     return proxy_queue, num_threads
 def format_proxy(proxy_str):
     if not proxy_str:
@@ -1116,7 +1118,7 @@ def main():
             f"\n{xColor.RED}[!] {xColor.YELLOW}User interrupt detected")
     time.sleep(0.5)
     end_time=time.time()
-    config._sequence_("Destroying traces", duration=2)
+    config._sequence_("Destroying Terminal", duration=2)
     config._loader_("Executing graceful shutdown", 2)
     elapsed=end_time - config.start_time
     hours, remainder=divmod(int(elapsed), 3600)
@@ -1125,8 +1127,9 @@ def main():
     config._print(
         f"{xColor.GREEN}[+] {xColor.CYAN}Operation complete. Runtime: {xColor.WHITE}{hours:02d}:{minutes:02d}:{seconds:02d}")
     config._print(f"{xColor.CYAN}{Style.BRIGHT}{'=' * 65}{Style.RESET_ALL}")
-    config._blinking_("CONNECTION TERMINATED", blinks=3)
+    config._blinking_("TOOL HAS BEEN SHUT DOWN", blinks=20)
     sys.stdout.flush()
+    os._exit(0)
 if __name__ == "__main__":
     config=zLocket()
     main()
