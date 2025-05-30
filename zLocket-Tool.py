@@ -712,7 +712,7 @@ def load_proxies():
     config._print(
         f"{xColor.MAGENTA}{Style.BRIGHT}[*] {xColor.CYAN}Initializing proxy collection system...")
     try:
-        with open('proxy.txt', 'r') as f:
+        with open('proxy.txt', 'r', encoding='utf-8') as f:
             file_proxies=[line.strip() for line in f if line.strip()]
             config._print(
                 f"{xColor.MAGENTA}[+] {xColor.GREEN}Found {xColor.WHITE}{len(file_proxies)} {xColor.GREEN}proxies in local storage (proxy.txt)")
