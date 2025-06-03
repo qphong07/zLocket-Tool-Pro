@@ -2,69 +2,76 @@
 #!/usr/bin/env python
 # coding: utf-8
 # Telegram: @wus_team
-# Version: 1.0.6 (Fixed)
+# Version: 1.0.7
 # Github: https://github.com/wusthanhdieu
 # Description: zLocket Tool Open Source
 # ==================================
 import sys
+import platform
+if platform.python_version() < "3.12":
+    print(f"\033[91m[!] Phiên bản python của bạn không được hỗ trợ")
+    print(f"\033[93m[!] Hiện tại: Python {platform.python_version()}")
+    print(f"\033[92m[+] Yêu cầu: Python 3.12 trở lên")
+    sys.exit(1)
 import subprocess
-def _install_():
+try:
+    from colorama import Fore, Style, init
+    init()
+except ImportError:
+    class DummyColors:
+        def __getattr__(self, name):
+            return ''
+    Fore=Style=DummyColors()
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def itls(pkg):
     try:
-        from colorama import Fore, Style, init
-        init()
+        __import__(pkg)
+        return True
     except ImportError:
-        class DummyColors:
-            def __getattr__(self, name):
-                return ''
-        Fore=Style=DummyColors()
-    def itls(pkg):
+        return False
+_list_={
+    'requests':
+    'requests',
+    'tqdm'    :
+    'tqdm',
+    'colorama':
+    'colorama',
+    'pystyle' :
+    'pystyle',
+    'urllib3' :
+    'urllib3',
+}
+_pkgs=[pkg_name for pkg_name in _list_ if not itls(pkg_name)]
+if _pkgs:
+    print(f"{Fore.CYAN}{'=' * 50}{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}[!] Bạn thiếu thư viện: {Fore.RED}{', '.join(_pkgs)}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'=' * 50}{Style.RESET_ALL}")
+    install=input(f"{Fore.GREEN}[?] Bạn có muốn cài đặt thư viện này không? (y/n): {Style.RESET_ALL}")
+    if install.lower()=='y':
+        print(f"{Fore.BLUE}[*] Đang cài đặt thư viện...{Style.RESET_ALL}")
         try:
-            __import__(pkg)
-            return True
-        except ImportError:
-            return False
-    _list_={
-        'requests': 'requests',
-        'tqdm': 'tqdm',
-        'colorama': 'colorama',
-        'pystyle': 'pystyle',
-        'urllib3': 'urllib3',
-    }
-    _pkgs=[pkg_name for pkg_name in _list_ if not itls(pkg_name)]
-    if _pkgs:
-        print(f"{Fore.CYAN}{'=' * 50}{Style.RESET_ALL}")
-        print(
-            f"{Fore.YELLOW}[!] Bạn chưa có thư viện: {Fore.RED}{', '.join(_pkgs)}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}{'=' * 50}{Style.RESET_ALL}")
-        install=input(
-            f"{Fore.GREEN}[?] Bạn có muốn cài đặt thư viện này không? (y/n): {Style.RESET_ALL}")
-        if install.lower() == 'y':
-            print(f"{Fore.BLUE}[*] Đang cài đặt thư viện...{Style.RESET_ALL}")
-            try:
-                subprocess.check_call(
-                    [sys.executable, '-m', 'pip', 'install', *_pkgs])
-                print(f"{Fore.GREEN}[✓] Cài đặt thành công!{Style.RESET_ALL}")
-            except subprocess.CalledProcessError:
-                print(
-                    f"{Fore.RED}[✗] Lỗi cài đặt, hãy thử cài tay bằng lệnh sau:{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}pip install {' '.join(_pkgs)}{Style.RESET_ALL}")
-                input("Nhấn Enter để thoát...")
-                sys.exit(1)
-        else:
-            print(
-                f"{Fore.YELLOW}[!] Cần có thư viện để tool hoạt động, cài bằng lệnh:{Style.RESET_ALL}")
-            print(f"{Fore.GREEN}pip install {' '.join(_pkgs)}{Style.RESET_ALL}")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', *_pkgs])
+            print(f"{Fore.GREEN}[✓] Cài đặt thành công!{Style.RESET_ALL}")
+        except subprocess.CalledProcessError:
+            print(f"{Fore.RED}[✗] Lỗi cài đặt, hãy thử cài tay bằng lệnh sau:{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}pip install {' '.join(_pkgs)}{Style.RESET_ALL}")
             input("Nhấn Enter để thoát...")
             sys.exit(1)
-_install_()
+    else:
+        print(f"{Fore.YELLOW}[!] Cần có thư viện để tool hoạt động, cài bằng lệnh:{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}pip install {' '.join(_pkgs)}{Style.RESET_ALL}")
+        input("Nhấn Enter để thoát...")
+        sys.exit(1)
 import os, re, time, json, queue, string, random, threading, datetime
 from queue import Queue
 from itertools import cycle
 from urllib.parse import urlparse, parse_qs, urlencode
-import requests, urllib3
+import requests
 from requests.exceptions import ProxyError
 from colorama import init, Back, Style
 from typing import Optional, List
+import getpass
 PRINT_LOCK=threading.RLock()
 def sfprint(*args, **kwargs):
     with PRINT_LOCK:
@@ -101,21 +108,23 @@ class zLocket:
     def __init__(self, device_token: str="", target_friend_uid: str="", num_threads: int=1, note_target: str=""):
         self.FIREBASE_GMPID="1:641029076083:ios:cc8eb46290d69b234fa606"
         self.IOS_BUNDLE_ID="com.locket.Locket"
-        self.API_BASE_URL="https://api.locketcamera.com"
+        self.API_LOCKET_URL="https://api.locketcamera.com"
         self.FIREBASE_AUTH_URL="https://www.googleapis.com/identitytoolkit/v3/relyingparty"
         self.FIREBASE_API_KEY="AIzaSyCQngaaXQIfJaH0aS2l7REgIjD7nL431So"
         self.TOKEN_API_URL="https://thanhdieu.com/api/v1/locket/token"
         self.SHORT_URL="https://url.thanhdieu.com/api/v1"
-        self.TOKEN_FILE_PATH="token.json"
-        self.TOKEN_EXPIRY_TIME=(20 + 10) * 60
+        self.SV_FRQ_URL="https://thanhdieu-server.vercel.app/api/locket-friend-requests"
+        self.TOKEN_FILE="token.json"
+        self.TOKEN_EXPIRY_TIME=(20 + 9) * 60
         self.FIREBASE_APP_CHECK=None
         self.USE_EMOJI=True
         self.ACCOUNTS_PER_PROXY=random.randint(6,10)
         self.NAME_TOOL="zLocket Tool Pro"
-        self.VERSION_TOOL="v1.0.6"
+        self.VERSION_TOOL="v1.0.7"
         self.TARGET_FRIEND_UID=target_friend_uid if target_friend_uid else None
         self.PROXY_LIST=[
-            # 'https://thanhdieu.com/api/list/free-proxy.txt',
+            'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all',
+            'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=https&timeout=20000&country=all&ssl=all&anonymity=all',
         ]
         self.print_lock=threading.Lock()
         self.successful_requests=0
@@ -133,7 +142,7 @@ class zLocket:
         self.session_id=int(time.time() * 1000)
         self._init_environment()
         self.FIREBASE_APP_CHECK=self._load_token_()
-        if os.name == "nt":
+        if os.name=="nt":
             os.system(
                 f"title 💰 {self.NAME_TOOL} {self.VERSION_TOOL} by Api.ThanhDieu.Com 💰"
          )
@@ -162,9 +171,9 @@ class zLocket:
             sys.stdout.write(f"\r{xColor.GREEN}{message} ✓     \n")
             sys.stdout.flush()
     def _sequence_(self, message, duration=1.5, char_set="0123456789ABCDEF"):
-        end_time = time.time() + duration
+        end_time=time.time() + duration
         while time.time() < end_time:
-            random_hex = ''.join(random.choices(char_set, k=50))
+            random_hex=''.join(random.choices(char_set, k=50))
             with PRINT_LOCK:
                 sys.stdout.write(f"\r{xColor.GREEN}[{xColor.WHITE}*{xColor.GREEN}] {xColor.CYAN}{message}: {xColor.GREEN}{random_hex}")
                 sys.stdout.flush()
@@ -183,9 +192,9 @@ class zLocket:
             vtd=""
             for _ in range(length):
                 char_type=random.randint(1, 3)
-                if char_type == 1:
+                if char_type==1:
                     vtd+=random.choice(special_chars)
-                elif char_type == 2:
+                elif char_type==2:
                     vtd+=random.choice(hex_chars)
                 else:
                     vtd+=random.choice("xX0")
@@ -222,11 +231,11 @@ class zLocket:
         init(autoreset=True)
     def _load_token_(self):
         try:
-            if not os.path.exists(self.TOKEN_FILE_PATH):
+            if not os.path.exists(self.TOKEN_FILE):
                 return self.fetch_token()
             self._loader_(
                 f"{xColor.YELLOW}Verifying token integrity{Style.RESET_ALL}", 0.5)
-            with open(self.TOKEN_FILE_PATH, 'r') as file:
+            with open(self.TOKEN_FILE, 'r') as file:
                 token_data=json.load(file)
             if 'token' in token_data and 'expiry' in token_data:
                 if token_data['expiry'] > time.time():
@@ -252,18 +261,18 @@ class zLocket:
                 'expiry': time.time() + self.TOKEN_EXPIRY_TIME,
                 'created_at': time.time()
             }
-            with open(self.TOKEN_FILE_PATH, 'w') as file:
+            with open(self.TOKEN_FILE, 'w') as file:
                 json.dump(token_data, file, indent=4)
 
             self._print(
-                f"{xColor.GREEN}[+] {xColor.CYAN}Token saved to {xColor.WHITE}{self.TOKEN_FILE_PATH}")
+                f"{xColor.GREEN}[+] {xColor.CYAN}Token saved to {xColor.WHITE}{self.TOKEN_FILE}")
             return True
         except Exception as e:
             self._print(
                 f"{xColor.RED}[!] {xColor.YELLOW}Error saving token to file: {str(e)}")
             return False
     def fetch_token(self, retry=0, max_retries=3):
-        if retry == 0:
+        if retry==0:
             self._print(
                 f"{xColor.MAGENTA}[*] {xColor.CYAN}Initializing token authentication sequence")
             self._loader_("Establishing secure connection", 1)
@@ -284,7 +293,7 @@ class zLocket:
                     f"{xColor.YELLOW}[!] {xColor.WHITE}Invalid response format, retrying...")
                 time.sleep(0.5)
                 return self.fetch_token(retry + 1)
-            if data.get("code") == 200 and "data" in data and "token" in data["data"]:
+            if data.get("code")==200 and "data" in data and "token" in data["data"]:
                 token=data["data"]["token"]
                 self._print(
                     f"{xColor.GREEN}[+] {xColor.CYAN}Token acquired successfully")
@@ -311,7 +320,7 @@ class zLocket:
             return self.fetch_token(retry + 1)
     def headers_locket(self):
         return {
-            'Host': 'api.locketcamera.com',
+            'Host': self.API_LOCKET_URL.replace('https://', ''),
             'Accept': '*/*',
             'baggage': 'sentry-environment=production,sentry-public_key=78fa64317f434fd89d9cc728dd168f50,sentry-release=com.locket.Locket%401.121.1%2B1,sentry-trace_id=2cdda588ea0041ed93d052932b127a3e',
             'X-Firebase-AppCheck': self.FIREBASE_APP_CHECK,
@@ -431,7 +440,7 @@ class zLocket:
                 except:
                     self._print(
                         f"{prefix} {xColor.RED}[!] Server connection timeout")
-                if status_code == 429:
+                if status_code==429:
                     return "too_many_requests"
             # self._print(f"{prefix} {xColor.RED}[!] Network error: {str(e)[:50]}...")
             return None
@@ -451,85 +460,343 @@ class zLocket:
         return input()
     def _zlocket_panel_(self):
         _clear_()
-        print(
-            f"\n{xColor.CYAN}╔═══════════════════════════════════════════════════════╗")
-        print(f"{xColor.CYAN}║ {xColor.YELLOW}            LOCKET LAUNCHER ADVANCED PANEL            {xColor.CYAN}║")
-        print(
-            f"{xColor.CYAN}║ {xColor.RED}                 [Telegram: @{self.telegram}]                {xColor.CYAN}║")
-        print(
-            f"{xColor.CYAN}╚═══════════════════════════════════════════════════════╝\n")
-        target_input=self._input_(
-            f"Nhập Username hoặc Link Locket {xColor.YELLOW}", "target")
-        if not target_input.strip():
-            print(f"{xColor.RED}[✗] Bạn phải nhập Username hoặc Link Locket!")
-            time.sleep(1.5)
-            return self._zlocket_panel_()
-        url=target_input.strip()
-        if not url.startswith(("http://", "https://")) and not url.startswith("locket."):
-            url=f"https://locket.cam/{url}"
-        if url.startswith("locket."):
-            url=f"https://{url}"
-        self._loader_(
-            f"{xColor.YELLOW}[?] Checking URL, please wait {xColor.WHITE}{url}...", 0.3)
-        self.messages=[]
-        uid=self._extract_uid_locket(url)
-        if uid:
-            self.TARGET_FRIEND_UID=uid
-            print(
-                f"{xColor.GREEN}[✓] Successfully Locket UID: {xColor.WHITE}{uid}")
-        else:
-            for msg in self.messages:
-                print(f"{xColor.RED}[✗] {msg}")
-            self.messages=[]
-            time.sleep(1.5)
-            return self._zlocket_panel_()
-        while True:
-            message=self._input_(
-                f"Nhập Username Custom {xColor.YELLOW}(mặc định: {xColor.WHITE}{self.NAME_TOOL}{xColor.YELLOW}) [tối đa 20 kí tự]", "custom")
-            if not message.strip():
-                break
-            if len(message.strip()) > 20:
-                print(
-                    f"{xColor.RED}[✗] Username quá dài. Vui lòng nhập lại (tối đa 20 kí tự)!")
-                time.sleep(1.5)
-                continue
-            else:
-                self.NAME_TOOL=message.strip()
-                break
-        emoji_choice=self._input_(
-            f'Kích Hoạt Random Emoji {xColor.YELLOW}(mặc định: '
-            f'{xColor.GREEN if self.USE_EMOJI else xColor.RED}{"ON" if self.USE_EMOJI else "OFF"}'
-            f'{xColor.YELLOW}) {xColor.WHITE}[y/n]',
-            "emoji"
-        )
-        if emoji_choice.strip().lower() in ('y', 'yes', '1'):
-            self.USE_EMOJI=True
-        elif emoji_choice.strip().lower() in ('n', 'no', '0'):
-            self.USE_EMOJI=False
-        self._blinking_(
-            f"{xColor.YELLOW}[-] Waiting for connection to launch...", blinks=5)
-        _clear_()
-        print(
-            f"\n{xColor.CYAN}╔═══════════════════════════════════════════════════════╗")
-        print(f"{xColor.CYAN}║ {xColor.YELLOW}              FINAL LAUNCH CONFIGURATION              {xColor.CYAN}║")
-        print(
-            f"{xColor.CYAN}╚═══════════════════════════════════════════════════════╝\n")
-        print(
-            f"{xColor.GREEN}● Target UID     : {xColor.WHITE}{self.TARGET_FRIEND_UID}")
-        print(f"{xColor.GREEN}● Custom Username: {xColor.WHITE}{self.NAME_TOOL}")
-        print(f"{xColor.GREEN}● Random Emoji   : {xColor.GREEN if self.USE_EMOJI else xColor.RED}{'ON' if self.USE_EMOJI else 'OFF'}{xColor.WHITE}")
-        # self._input_(f"{xColor.WHITE}Press Enter to continue...", "start")
-        zlocket_confirm=self._input_(
-            f'Xác Nhận Chạy Tool {xColor.RED}(LƯU Ý: {xColor.WHITE}Tool sẽ spam không dừng trừ khi bạn ấn enter hoặc đóng tool{xColor.RED}) {xColor.WHITE}[y/n]',
-            "config"
-        )
-        if zlocket_confirm.strip().lower() in ('y', 'yes', '1'):
-            self.zlocket_confirm=True
-        else:
-            print(f"{xColor.RED}[✗] Đã thoát {config.NAME_TOOL}...")
+        print(f"\n{xColor.CYAN}╔═══════════════════════════════════════════════════════╗")
+        print(f"{xColor.CYAN}║ {xColor.YELLOW}             ZLOCKET TOOL PRO PANEL {config.VERSION_TOOL}            {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║ {xColor.RED}                 [Telegram: @{self.telegram}]                {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║{xColor.WHITE}                                                       {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║   {xColor.WHITE}[{xColor.GREEN}01{xColor.WHITE}] {xColor.YELLOW}⭐ Tool Spam Kết Bạn                           {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║   {xColor.WHITE}[{xColor.GREEN}02{xColor.WHITE}] {xColor.YELLOW}⭐ Tool Xoá Yêu Cầu Kết Bạn                    {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║   {xColor.WHITE}[{xColor.RED}00{xColor.WHITE}] {xColor.RED}✗  Thoát Tool                                  {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║{xColor.WHITE}                                                       {xColor.CYAN}║")
+        print(f"{xColor.CYAN}╚═══════════════════════════════════════════════════════╝")
+        _cc_=self._input_(f"Hãy chọn chức năng {xColor.YELLOW}", "menu")
+        if _cc_=="1" or _cc_=="01":
+            return self._spam_friend_request()
+        elif _cc_=="2" or _cc_=="02":
+            return self._delete_friend_request()
+        elif _cc_=="0" or _cc_=="00":
+            print(f"{xColor.RED}[✗] Đã thoát {self.NAME_TOOL}...")
             time.sleep(2)
             sys.exit(0)
+        else:
+            print(f"{xColor.RED}[✗] Lựa chọn không hợp lệ!")
+            time.sleep(1.5)
+            return self._zlocket_panel_()
+    def _spam_friend_request(self):
+        while True:
+            _clear_()
+            self._zheader_()
+            _tg_=self._input_(f"Nhập Username hoặc Link Locket {xColor.YELLOW}", "target")
+            if not _tg_.strip():
+                print(f"{xColor.RED}[✗] Bạn phải nhập Username hoặc Link Locket!")
+                time.sleep(1.5)
+                continue
+            url=_tg_.strip()
+            if not url.startswith(("http://", "https://")) and not url.startswith("locket."):
+                url=f"https://locket.cam/{url}"
+            if url.startswith("locket."):
+                url=f"https://{url}"
+            self._loader_(f"{xColor.YELLOW}[?] Checking URL, please wait {xColor.WHITE}{url}...", 0.3)
+            self.messages=[]
+            uid=self._extract_uid_locket(url)
+            if uid:
+                self.TARGET_FRIEND_UID=uid
+                print(f"{xColor.GREEN}[✓] Successfully Locket UID: {xColor.WHITE}{uid}")
+            else:
+                for msg in self.messages:
+                    print(f"{xColor.RED}[✗] {msg}")
+                self.messages=[]
+                time.sleep(1.5)
+                continue
+            _clear_()
+            self._zheader_()
+            _msg_=self._input_(f"Nhập Username Custom {xColor.YELLOW}(mặc định: {xColor.WHITE}{self.NAME_TOOL}{xColor.YELLOW}) [tối đa 20 kí tự]", "custom")
+            if _msg_.strip():
+                if len(_msg_.strip()) > 20:
+                    print(f"{xColor.RED}[✗] Username quá dài. Vui lòng nhập lại (tối đa 20 kí tự)!")
+                    time.sleep(1.5)
+                    continue
+                else:
+                    self.NAME_TOOL=_msg_.strip()
+            _clear_()
+            self._zheader_()
+            _e_=self._input_(
+                f'Kích Hoạt Random Emoji {xColor.YELLOW}(mặc định: '
+                f'{xColor.GREEN if self.USE_EMOJI else xColor.RED}{"ON" if self.USE_EMOJI else "OFF"}'
+                f'{xColor.YELLOW}) {xColor.WHITE}[y/n]',
+                "emoji"
+            )
+            if _e_.strip().lower() in ('y', 'yes', '1'):
+                self.USE_EMOJI=True
+            elif _e_.strip().lower() in ('n', 'no', '0'):
+                self.USE_EMOJI=False
+            self._blinking_(f"{xColor.YELLOW}[-] Waiting for connection to launch...", blinks=5)
+            _clear_()
+            self._zheader_()
+            print(f"{xColor.GREEN}● Target UID     : {xColor.WHITE}{self.TARGET_FRIEND_UID}")
+            print(f"{xColor.GREEN}● Custom Username: {xColor.WHITE}{self.NAME_TOOL}")
+            print(f"{xColor.GREEN}● Random Emoji   : {xColor.GREEN if self.USE_EMOJI else xColor.RED}{'ON' if self.USE_EMOJI else 'OFF'}{xColor.WHITE}")
+            _cf_=self._input_(
+                f'Xác Nhận Chạy Tool {xColor.RED}{xColor.WHITE}[y/n]',
+                "config"
+            )
+            if _cf_.strip().lower() in ('y', 'yes', '1'):
+                self._cf_=True
+                break
+            else:
+                print(f"{xColor.RED}[✗] Đã huỷ chạy {self.NAME_TOOL}...")
+                time.sleep(2)
+                return self._zlocket_panel_()
         return
+    def _delete_friend_request(self):
+        while True:
+            _clear_()
+            self._xheader_()
+            while True:
+                _clear_()
+                self._xheader_()
+                email=self._input_("Nhập email Locket của bạn", "login")
+                if not email:
+                    print(f"{xColor.RED}[✗] Email không được để trống!")
+                    time.sleep(1.5)
+                    continue
+                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                    print(f"{xColor.RED}[✗] Email không đúng định dạng!")
+                    print(f"{xColor.YELLOW}[!] Ví dụ: thanhdieu@email.com")
+                    time.sleep(2)
+                    continue
+                while True:
+                    _clear_()
+                    self._xheader_()
+                    print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+                    _pw_=self._input_("Nhập mật khẩu", "login")
+                    if not _pw_:
+                        print(f"{xColor.RED}[✗] Mật khẩu không được để trống!")
+                        time.sleep(1.5)
+                        continue
+                    print(f"{xColor.YELLOW}[*] Đang đăng nhập vào tài khoản...")
+                    _sb_=False
+                    try:
+                        _res_=requests.post(
+                            f"{self.FIREBASE_AUTH_URL}/verifyPassword?key={self.FIREBASE_API_KEY}",
+                            headers=self.firebase_headers_locket(),
+                            json={
+                                "email": email,
+                                "password": _pw_,
+                                "clientType": "CLIENT_TYPE_IOS",
+                                "returnSecureToken": True
+                            },
+                            timeout=self.request_timeout,
+                            verify=False
+                        )
+                        if _res_.status_code==400:
+                            try:
+                                _d_=_res_.json()
+                                _e_=_d_.get('message', '')
+                                if not _e_ and 'error' in _d_:
+                                    _e_=_d_['error'].get('message', 'Unknown error')
+                                _clear_()
+                                self._xheader_()
+                                print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+                                if _e_=='INVALID_EMAIL' or _e_=='EMAIL_NOT_FOUND':
+                                    print(f"{xColor.RED}[✗] Tài khoản không tồn tại!")
+                                    time.sleep(2)
+                                    _sb_=True
+                                    break
+                                elif _e_=='INVALID_PASSWORD':
+                                    print(f"{xColor.RED}[✗] Mật khẩu không chính xác!")
+                                    time.sleep(2)
+                                    continue
+                                else:
+                                    print(f"{xColor.RED}[✗] {_e_}")
+                                    time.sleep(2)
+                                    continue
+                            except ValueError:
+                                _clear_()
+                                self._xheader_()
+                                print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+                                print(f"{xColor.RED}[✗] Không thể đăng nhập tài khoản, hãy thử lại sau!")
+                                time.sleep(2)
+                                continue
+                        _res_.raise_for_status()
+                        _auth_=_res_.json()
+                        if not _auth_:
+                            print(f"{xColor.RED}[✗] Something went wrong, please try again later!")
+                            time.sleep(2)
+                            continue
+                        if 'idToken' not in _auth_ or 'localId' not in _auth_:
+                            error_msg=_auth_.get('error', {}).get('message')
+                            print(f"{xColor.RED}[✗] {error_msg}")
+                            time.sleep(2)
+                            continue
+                        break
+                    except requests.exceptions.RequestException as e:
+                        print(f"{xColor.RED}[✗] Warning: {str(e)}")
+                        time.sleep(2)
+                        continue
+                if _sb_:
+                    continue
+                break
+            _clear_()
+            self._xheader_()
+            if _auth_.get('displayName', 'Unknown'):
+                print(f"{xColor.GREEN}[+] Tên Tài Khoản: {xColor.WHITE}{_auth_.get('displayName', '')}")
+                print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+            print(f"{xColor.CYAN}{'=' * 40}")
+            loader_stop=threading.Event()
+            vtd_loader=threading.Thread(
+                target=self._cc_loader_,
+                args=(f"{xColor.YELLOW}Đang lấy danh sách Y/C kết bạn, hãy kiên nhẫn chờ đợi...", loader_stop)
+            )
+            vtd_loader.daemon=True
+            vtd_loader.start()
+            try:
+                vtd=requests.post(
+                    self.SV_FRQ_URL,
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    data={
+                        "action": 'thanhdieu_get_friends',
+                        "idToken": _auth_['idToken'],
+                        "localId": _auth_['localId']
+                    },
+                    timeout=self.request_timeout+200,
+                    verify=True
+                )
+                cmm=vtd.json()
+                loader_stop.set()
+                vtd_loader.join()
+                _clear_()
+                self._xheader_()
+                if _auth_.get('displayName', 'Unknown'):
+                    print(f"{xColor.GREEN}[+] Tên Tài Khoản: {xColor.WHITE}{_auth_.get('displayName', '')}")
+                    print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+                print(f"{xColor.CYAN}{'=' * 40}")
+                if cmm.get('code') != 200:
+                    print(f"{xColor.RED}[✗] {cmm.get('msg')}")
+                    time.sleep(4)
+                    continue
+                friend_list=cmm['data']['list']
+                total_friends=cmm['total']
+                print(f"{xColor.GREEN}[✓] Đã tìm thấy {xColor.RED}{total_friends} {xColor.GREEN}lượt yêu cầu kết bạn")
+                if total_friends < 0:
+                    input(f"\n{xColor.YELLOW}Nhấn Enter để quay lại menu chính...")
+                    return self._zlocket_panel_()
+                self._frc_=friend_list
+            except requests.exceptions.RequestException as e:
+                loader_stop.set()
+                vtd_loader.join()
+                print(f"{xColor.RED}[✗] Warning: {str(e)}")
+                time.sleep(4)
+                continue
+            except Exception as e:
+                loader_stop.set()
+                vtd_loader.join()
+                print(f"{xColor.RED}[✗] Unexpected: {str(e)}")
+                time.sleep(4)
+                continue
+            confirm=self._input_(f"Bạn có muốn tiếp tục xoá Y/C kết bạn locket? (y/n)", "confirm")
+            if confirm.lower() not in ['y', 'yes', '1']:
+                print(f"{xColor.YELLOW}[!] Đã hủy xóa yêu cầu kết bạn")
+                time.sleep(3)
+                return self._zlocket_panel_()
+            _o_=None
+            while True:
+                _clear_()
+                self._xheader_()
+                if _auth_.get('displayName', 'Unknown'):
+                    print(f"{xColor.GREEN}[+] Tên Tài Khoản: {xColor.WHITE}{_auth_.get('displayName', '')}")
+                    print(f"{xColor.GREEN}[+] Email: {xColor.WHITE}{email}")
+                print(f"{xColor.CYAN}{'=' * 40}")
+                print(f"{xColor.GREEN}[✓] Đã tìm thấy {xColor.RED}{total_friends} {xColor.GREEN}lượt yêu cầu kết bạn")
+                print(f"{xColor.CYAN}{'=' * 40}")
+                print(f"{xColor.CYAN}[1] {xColor.YELLOW}(Destroy) - {xColor.GREEN}Khắc Chế Cứng {xColor.WHITE}(Xóa không tì vết)")
+                print(f"{xColor.CYAN}[2] {xColor.BLUE}(Limit) - {xColor.GREEN}Xoá Sương Sương {xColor.WHITE}(Xóa theo nhu cầu)")
+                if not _o_:
+                    _o_=self._input_("Nhập lựa chọn", "option").lower()
+                if _o_ not in ['1', '2','destroy', 'limit']:
+                    print(f"{xColor.RED}[✗] Hãy nhập lựa chọn 1 hoặc 2!")
+                    time.sleep(1.5)
+                    _o_=None
+                    continue
+                break
+            limit=total_friends
+            if _o_ in ['2', 'limit']:
+                while True:
+                    try:
+                        _limit_=self._input_(f"Nhập số lượng muốn xóa (tối đa {total_friends})", "limit")
+                        limit=int(_limit_)
+                        if 0 < limit <= total_friends:
+                            break
+                        print(f"{xColor.RED}[✗] Hãy nhập từ 1 đến {total_friends}!")
+                    except ValueError:
+                        print(f"{xColor.RED}[✗] Hãy nhập số lượng hợp lệ!")
+            while True:
+                try:
+                    _num_=int(self._input_(f"Nhập Threads (1-1000)", "threads"))
+                    if 1 <= _num_ <= 1000:
+                        break
+                    print(f"{xColor.RED}[✗] Hãy nhập threads 1 đến 1000!")
+                except ValueError:
+                    print(f"{xColor.RED}[✗] Hãy nhập threads hợp lệ!")
+            _clear_()
+            print(f"{xColor.YELLOW}[*] Bắt đầu xóa yêu cầu kết bạn...")
+            deleted_count=0
+            thread_semaphore=threading.Semaphore(_num_)
+            delete_lock=threading.Lock()
+            active_threads=[]
+            def delete_friend_request(friend):
+                nonlocal deleted_count
+                with thread_semaphore:
+                    if deleted_count >= limit:
+                        return
+                    headers=self.headers_locket()
+                    headers['Authorization']=f"Bearer {_auth_['idToken']}"
+                    _payload={
+                        "data": {
+                            "analytics": self.analytics_payload(),
+                            "direction": "incoming",
+                            "user_uid": friend['userId']
+                        }
+                    }
+                    result=self.excute(
+                        f"{self.API_LOCKET_URL}/deleteFriendRequest",
+                        headers=headers,
+                        payload=_payload
+                    )
+                    with delete_lock:
+                        if result and deleted_count < limit:
+                            deleted_count += 1
+                            remaining=limit - deleted_count
+                            progress_percent=min((deleted_count/limit*100), 100)
+                            name_display=friend['userId'] if friend['fullname']=='Tạm Ẩn' else friend['fullname']
+                            print(f"""{xColor.CYAN}[{xColor.WHITE}✓{xColor.CYAN}] {xColor.YELLOW}TK/UserID   {xColor.CYAN}:{xColor.NEON_PINK} {name_display}{' ' * (28 - len(name_display))}
+{xColor.CYAN}[{xColor.WHITE}+{xColor.CYAN}] {xColor.YELLOW}Đã Xoá      {xColor.CYAN}:{xColor.WHITE} {deleted_count:,}/{xColor.ORANGE}{limit} {xColor.NEON_GREEN}({progress_percent:.0f}%){' ' * (15 - len(str(int(progress_percent))))}
+{xColor.CYAN}[{xColor.WHITE}!{xColor.CYAN}] {xColor.YELLOW}Còn Lại     {xColor.CYAN}:{xColor.RED} {max(remaining, 0):,}
+{xColor.CYAN}{'=' * 46}""")
+            for i in range(0, min(limit, len(self._frc_)), _num_):
+                if deleted_count >= limit:
+                    break
+                batch=self._frc_[i:i + _num_]
+                threads=[]
+                for friend in batch:
+                    if deleted_count >= limit:
+                        break
+                    thread=threading.Thread(target=delete_friend_request, args=(friend,))
+                    threads.append(thread)
+                    thread.start()
+                    active_threads.append(thread)
+                for thread in threads:
+                    thread.join()
+                    active_threads.remove(thread)
+                if deleted_count >= limit:
+                    break
+            for thread in active_threads:
+                thread.join()
+            print(f"\n{xColor.GREEN}[✓] Đã xóa thành công {xColor.RED}{deleted_count:,} {xColor.GREEN}Y/C kết bạn")
+            input(f"\n{xColor.YELLOW}Nhấn Enter để quay lại menu chính...")
+            return self._zlocket_panel_()
     def _extract_uid_locket(self, url: str) -> Optional[str]:
         real_url=self._convert_url(url)
         if not real_url:
@@ -565,7 +832,7 @@ class zLocket:
                     },
                     timeout=self.request_timeout,
                 )
-                if resp.status_code == 200:
+                if resp.status_code==200:
                     match=re.search(
                         r'window\.location\.href\s*=\s*"([^"]+)"', resp.text)
                     if match:
@@ -603,7 +870,7 @@ class zLocket:
             )
             response.raise_for_status()
             _res=response.json()
-            if _res.get("status") == 1 and "url" in _res:
+            if _res.get("status")==1 and "url" in _res:
                 return _res["url"]
             self.messages.append("Lỗi kết nối tới API Url.ThanhDieu.Com")
             return ""
@@ -614,6 +881,26 @@ class zLocket:
         except ValueError:
             self.messages.append("Lỗi kết nối tới API Url.ThanhDieu.Com")
             return ""
+    def _cc_loader_(self, message, stop_event):
+        spinner=cycle(['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'])
+        while not stop_event.is_set():
+            with PRINT_LOCK:
+                sys.stdout.write(f"\r{xColor.CYAN}{message} {next(spinner)} ")
+                sys.stdout.flush()
+            time.sleep(0.1)
+        with PRINT_LOCK:
+            sys.stdout.write("\r" + " " * (len(message) + 10) + "\r")
+            sys.stdout.flush()
+    def _xheader_(self):
+        print(f"\n{xColor.CYAN}╔═══════════════════════════════════════════════════════╗")
+        print(f"{xColor.CYAN}║ {xColor.YELLOW}             TOOL KHẮC CHẾ SPAM Y/C KẾT BẠN           {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║ {xColor.RED}                 [Telegram: @{self.telegram}]                {xColor.CYAN}║")
+        print(f"{xColor.CYAN}╚═══════════════════════════════════════════════════════╝")
+    def _zheader_(self):
+        print(f"\n{xColor.CYAN}╔═══════════════════════════════════════════════════════╗")
+        print(f"{xColor.CYAN}║ {xColor.YELLOW}              SPAM KẾT BẠN LOCKET WIDGET              {xColor.CYAN}║")
+        print(f"{xColor.CYAN}║ {xColor.RED}                 [Telegram: @{self.telegram}]                {xColor.CYAN}║")
+        print(f"{xColor.CYAN}╚═══════════════════════════════════════════════════════╝\n")
 def _print(*args, **kwargs):
     return config._print(*args, **kwargs)
 def _loader_(message, duration=3):
@@ -631,10 +918,10 @@ def _rand_name_():
 def _rand_email_():
     return f"{_rand_str_(15)}@thanhdieu.com"
 def _rand_pw_():
-    return 'zlocket' + _rand_str_(4)
+    return 'zlocket' + _rand_str_(7)
 def _clear_():
     try:
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system('cls' if os.name=='nt' else 'clear')
     except:
         with PRINT_LOCK:
             print("\033[2J\033[H", end="")
@@ -646,6 +933,10 @@ def typing_print(text, delay=0.02):
             sys.stdout.flush()
             time.sleep(delay)
         print()
+def _flush_():
+    sys.stdout.write('\033[F\033[K') 
+    sys.stdout.write('\033[F\033[K')
+    sys.stdout.flush()
 def _matrix_():
     matrix_chars="01"
     lines=5
@@ -712,7 +1003,7 @@ def load_proxies():
     config._print(
         f"{xColor.MAGENTA}{Style.BRIGHT}[*] {xColor.CYAN}Initializing proxy collection system...")
     try:
-        with open('proxy.txt', 'r', encoding='utf-8') as f:
+        with open('proxy.txt', 'r', encoding='utf-8', errors='ignore') as f:
             file_proxies=[line.strip() for line in f if line.strip()]
             config._print(
                 f"{xColor.MAGENTA}[+] {xColor.GREEN}Found {xColor.WHITE}{len(file_proxies)} {xColor.GREEN}proxies in local storage (proxy.txt)")
@@ -727,26 +1018,39 @@ def load_proxies():
                 f"{xColor.MAGENTA}[*] {xColor.CYAN}Fetching proxies from {xColor.WHITE}{url}")
             config._loader_(f"Connecting to {url.split('/')[2]}", 1)
             response=requests.get(url, timeout=config.request_timeout)
+            response.encoding='utf-8'
             response.raise_for_status()
-            url_proxies=[line.strip()
-                           for line in response.text.splitlines() if line.strip()]
+            url_proxies=[line.strip() for line in response.text.splitlines() if line.strip()]
             proxies.extend(url_proxies)
             config._print(
                 f"{xColor.MAGENTA}[+] {xColor.GREEN}Harvested {xColor.WHITE}{len(url_proxies)} {xColor.GREEN}proxies from {url.split('/')[2]}")
         except requests.exceptions.RequestException as e:
             config._print(
                 f"{xColor.RED}[!] {xColor.YELLOW}Connection failed: {url.split('/')[2]} - {str(e)}")
-    proxies=list(set(proxies))
-    if not proxies:
+        except UnicodeDecodeError:
+            config._print(
+                f"{xColor.RED}[!] {xColor.YELLOW}Encoding error while reading proxies from {url.split('/')[2]}")
+            try:
+                response.encoding='latin-1'
+                url_proxies=[line.strip() for line in response.text.splitlines() if line.strip()]
+                proxies.extend(url_proxies)
+                config._print(
+                    f"{xColor.MAGENTA}[+] {xColor.GREEN}Harvested {xColor.WHITE}{len(url_proxies)} {xColor.GREEN}proxies from {url.split('/')[2]} (using alternative encoding)")
+            except:
+                config._print(
+                    f"{xColor.RED}[!] {xColor.YELLOW}Failed to decode proxies from {url.split('/')[2]}")
+    proxies=list(set(proxies)) 
+    valid_proxies=[p for p in proxies if re.match(r'^(\d{1,3}\.){3}\d{1,3}:\d+$', p)]
+    if not valid_proxies:
         config._print(
-            f"{xColor.RED}[!] Warning: No proxies available for operation")
+            f"{xColor.RED}[!] Warning: No valid proxies available for operation")
         return []
-    config.total_proxies=len(proxies)
+    config.total_proxies=len(valid_proxies)
     config._print(
-        f"{xColor.GREEN}[+] {xColor.CYAN}Proxy harvesting complete{xColor.WHITE} {len(proxies)} {xColor.CYAN}unique proxies loaded")
-    return proxies
+        f"{xColor.GREEN}[+] {xColor.CYAN}Proxy harvesting complete{xColor.WHITE} {len(valid_proxies)} {xColor.CYAN}unique proxies loaded")
+    return valid_proxies
 def init_proxy():
-    proxies = load_proxies()
+    proxies=load_proxies()
     if not proxies:
         config._print(f"{xColor.RED}[!] {xColor.YELLOW}Note: Please add proxies to continue running the tool.")
         config._loader_("Shutting down system", 1)
@@ -759,10 +1063,10 @@ def init_proxy():
     config._print(f"{xColor.MAGENTA}[*] {xColor.CYAN}Randomizing proxy sequence for optimal distribution")
     random.shuffle(proxies)
     config._loader_("Optimizing proxy rotation algorithm", 1)
-    proxy_queue = Queue()
+    proxy_queue=Queue()
     for proxy in proxies:
         proxy_queue.put(proxy)
-    num_threads = len(proxies)
+    num_threads=len(proxies)
     config._print(f"{xColor.GREEN}[+] {xColor.CYAN}Proxy system initialized with {xColor.WHITE}{num_threads} {xColor.CYAN}endpoints")
     return proxy_queue, num_threads
 def format_proxy(proxy_str):
@@ -793,7 +1097,7 @@ def step1b_sign_in(email, password, thread_id, proxies_dict):
     if not email or not password:
         config._print(
             f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Auth{Style.RESET_ALL}] {xColor.RED}[✗] Authentication failed: Invalid credentials")
-        return None
+        return None, None
     payload={
         "email": email,
         "password": password,
@@ -808,35 +1112,19 @@ def step1b_sign_in(email, password, thread_id, proxies_dict):
         step="Auth",
         proxies_dict=proxies_dict
     )
-    if vtd and 'idToken' in vtd:
+    if vtd and 'idToken' in vtd and 'localId' in vtd:
         config._print(
             f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Auth{Style.RESET_ALL}] {xColor.GREEN}[✓] Authentication successful")
-        return vtd.get('idToken')
+        return vtd.get('idToken'), vtd.get('localId')
     config._print(
         f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Auth{Style.RESET_ALL}] {xColor.RED}[✗] Authentication failed")
-    return None
+    return None, None
 def step2_finalize_user(id_token, thread_id, proxies_dict):
     if not id_token:
         config._print(
             f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Profile{Style.RESET_ALL}] {xColor.RED}[✗] Profile creation failed: Invalid token")
         return False
     first_name=config.NAME_TOOL
-    # if config.USE_EMOJI:
-    #     last_name=' '.join(random.sample([
-    #     '😀', '😂', '😍', '🥰', '😊', '😇', '😚', '😘', '😻', '😽', '🤗',
-    #     '😎', '🥳', '😜', '🤩', '😢', '😡', '😴', '🙈', '🙌', '💖', '🔥', '👍',
-    #     '✨', '🌟', '🍎', '🍕', '🚀', '🎉', '🎈', '🌈', '🐶', '🐱', '🦁',
-    #     '😋', '😬', '😳', '😷', '🤓', '😈', '👻', '💪', '👏', '🙏', '💕', '💔',
-    #     '🌹', '🍒', '🍉', '🍔', '🍟', '☕', '🍷', '🎂', '🎁', '🎄', '🎃', '🔔',
-    #     '⚡', '💡', '📚', '✈️', '🚗', '🏠', '⛰️', '🌊', '☀️', '☁️', '❄️', '🌙',
-    #     '🐻', '🐼', '🐸', '🐝', '🦄', '🐙', '🦋', '🌸', '🌺', '🌴', '🏀', '⚽', '🎸'
-    #     ], 5))
-    # else:
-    #     last_name='ccc'
-    # if config.NAME_TOOL and config.NAME_TOOL.strip():
-    #     first_name=config.NAME_TOOL[:12]
-    #     if len(config.NAME_TOOL) > 12:
-    #         last_name=config.NAME_TOOL[12:24]
     last_name=' '.join(random.sample([
         '😀', '😂', '😍', '🥰', '😊', '😇', '😚', '😘', '😻', '😽', '🤗',
         '😎', '🥳', '😜', '🤩', '😢', '😡', '😴', '🙈', '🙌', '💖', '🔥', '👍',
@@ -858,7 +1146,7 @@ def step2_finalize_user(id_token, thread_id, proxies_dict):
     headers=config.headers_locket()
     headers['Authorization']=f"Bearer {id_token}"
     result=excute(
-        f"{config.API_BASE_URL}/finalizeTemporaryUser",
+        f"{config.API_LOCKET_URL}/finalizeTemporaryUser",
         headers=headers,
         payload=payload,
         thread_id=thread_id,
@@ -894,7 +1182,7 @@ def step3_send_friend_request(id_token, thread_id, proxies_dict):
     headers=config.headers_locket()
     headers['Authorization']=f"Bearer {id_token}"
     result=excute(
-        f"{config.API_BASE_URL}/sendFriendRequest",
+        f"{config.API_LOCKET_URL}/sendFriendRequest",
         headers=headers,
         payload=payload,
         thread_id=thread_id,
@@ -964,7 +1252,7 @@ def step1_create_account(thread_id, proxy_queue, stop_event):
             if stop_event.is_set():
                 return
             response_data=excute(
-                f"{config.API_BASE_URL}/createAccountWithEmailPassword",
+                f"{config.API_LOCKET_URL}/createAccountWithEmailPassword",
                 headers=config.headers_locket(),
                 payload=payload,
                 thread_id=thread_id,
@@ -973,30 +1261,30 @@ def step1_create_account(thread_id, proxy_queue, stop_event):
             )
             if stop_event.is_set():
                 return
-            if response_data == "proxy_dead":
+            if response_data=="proxy_dead":
                 config._print(
                     f"{prefix} {xColor.RED}[!] Proxy terminated, acquiring new endpoint")
                 current_proxy=None
-                failed_attempts+=1
+                failed_attempts += 1
                 continue
-            if response_data == "too_many_requests":
+            if response_data=="too_many_requests":
                 config._print(
                     f"{prefix} {xColor.RED}[!] Connection throttled, switching endpoint")
                 current_proxy=None
-                failed_attempts+=1
+                failed_attempts += 1
                 continue
-            if isinstance(response_data, dict) and response_data.get('result', {}).get('status') == 200:
+            if isinstance(response_data, dict) and response_data.get('result', {}).get('status')==200:
                 config._print(
                     f"{prefix} {xColor.GREEN}[✓] Identity created: {xColor.YELLOW}{email}")
-                proxy_usage_count+=1
+                proxy_usage_count += 1
                 failed_attempts=0
                 if stop_event.is_set():
                     return
-                id_token=step1b_sign_in(
+                id_token, local_id=step1b_sign_in(
                     email, password, thread_id, proxies_dict)
                 if stop_event.is_set():
                     return
-                if id_token:
+                if id_token and local_id:
                     if step2_finalize_user(id_token, thread_id, proxies_dict):
                         if stop_event.is_set():
                             return
@@ -1004,8 +1292,8 @@ def step1_create_account(thread_id, proxy_queue, stop_event):
                             id_token, thread_id, proxies_dict)
                         if first_request_success:
                             config._print(
-                                f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Boost{Style.RESET_ALL}] {xColor.YELLOW}🚀 Boosting friend requests: Sending 50 more requests")
-                            for _ in range(50):
+                                f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL} | {xColor.MAGENTA}Boost{Style.RESET_ALL}] {xColor.YELLOW}🚀 Boosting friend requests: Sending 15 more requests")
+                            for _ in range(15):
                                 if stop_event.is_set():
                                     return
                                 step3_send_friend_request(
@@ -1018,36 +1306,19 @@ def step1_create_account(thread_id, proxy_queue, stop_event):
                 else:
                     config._print(
                         f"{prefix} {xColor.RED}[✗] Identity creation failed")
-                failed_attempts+=1
+                failed_attempts += 1
         if failed_attempts >= max_failed_attempts:
             config._print(
                 f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL}] {xColor.RED}[!] Thread restarting: Excessive failures ({failed_attempts})")
         else:
             config._print(
                 f"[{xColor.CYAN}Thread-{thread_id:03d}{Style.RESET_ALL}] {xColor.YELLOW}● Proxy limit reached ({proxy_usage_count}/{config.ACCOUNTS_PER_PROXY}), getting new proxy")
-# def stop_tool(stop_event):
-#     stop_event.set()
-#     for thread in threading.enumerate():
-#         if thread != threading.current_thread() and not thread.daemon:
-#             try:
-#                 if hasattr(thread, "_stop"):
-#                     thread._stop()
-#             except:
-#                 pass
-#     with PRINT_LOCK:
-#         config._print(f"\n{xColor.RED}[!] {xColor.WHITE}STOPPING TOOL - USER INTERRUPTED")
-#         config._print(_stats_())
-#         config._print(f"{xColor.GREEN}[+] {xColor.CYAN}Operation complete.")
-#         config._print(f"{xColor.CYAN}{Style.BRIGHT}{'=' * 65}{Style.RESET_ALL}")
-#         config._blinking_("CONNECTION TERMINATED", blinks=7)
-#         sys.stdout.flush()
-#     os._exit(0)
+
 def main():
     config.start_time=time.time()
     config.setup()
     _clear_()
     _banner_()
-    # config._blinking_("START LAUNCHING THE TOOL...", blinks=5)
     config._randchar_(duration=1)
     config._blinking_("Preparing to connect to the server", blinks=3)
     typing_print(
@@ -1090,7 +1361,7 @@ def main():
                 all_threads.append(thread)
                 thread.daemon=False
                 thread.start()
-                if i % 10 == 0 and i > 0:
+                if i % 10==0 and i > 0:
                     config._print(
                         f"{xColor.CYAN}[{xColor.WHITE}*{xColor.CYAN}] {xColor.GREEN}Activated {xColor.WHITE}{i} {xColor.GREEN}threads...")
             config._print(
@@ -1123,13 +1394,12 @@ def main():
     elapsed=end_time - config.start_time
     hours, remainder=divmod(int(elapsed), 3600)
     minutes, seconds=divmod(remainder, 60)
-    # config._print(_stats_())
     config._print(
         f"{xColor.GREEN}[+] {xColor.CYAN}Operation complete. Runtime: {xColor.WHITE}{hours:02d}:{minutes:02d}:{seconds:02d}")
     config._print(f"{xColor.CYAN}{Style.BRIGHT}{'=' * 65}{Style.RESET_ALL}")
     config._blinking_("TOOL HAS BEEN SHUT DOWN", blinks=20)
     sys.stdout.flush()
     os._exit(0)
-if __name__ == "__main__":
+if __name__=="__main__":
     config=zLocket()
     main()
